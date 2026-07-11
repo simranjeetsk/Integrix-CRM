@@ -335,9 +335,11 @@ export function QuotationDocument({
           </View>
         ))}
 
-        <Text style={styles.sectionTitle}>TAKE HOME CALCULATION</Text>
+        <View break>
+          <Text style={styles.sectionTitle}>TAKE HOME CALCULATION</Text>
+        </View>
         {result.lines.map((line) => (
-          <View key={line.role} style={{ marginBottom: 10 }}>
+          <View key={line.role} style={{ marginBottom: 10 }} wrap={false}>
             <View style={styles.table}>
               <View style={styles.headerRow}>
                 <Text style={styles.cellLabel}>Head</Text>
