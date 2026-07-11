@@ -161,8 +161,8 @@ export function QuotationDocument({
           <Image src={logoBuffer} style={styles.logo} />
           <View>
             <Text style={styles.tagline}>
-              Office No. C-610, 6th Floor, Kushal Wallstreet, Bhamburda,
-              Shivaji Nagar, Pune - 411004
+              Office No. 610C, Kushal Wallstreet, Fergusson College Road,
+              Pune - 411004
             </Text>
             <Text style={styles.tagline}>
               Contact: 97676 73605 | Email: info@integrixfs.com
