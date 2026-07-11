@@ -75,7 +75,9 @@ export interface Database {
           da: number;
           hra_pct: number;
           pf_employee_pct: number;
-          pf_employer_pct: number;
+          pf_employer_epf_pct: number;
+          pf_employer_edli_pct: number;
+          pf_employer_admin_pct: number;
           esic_employee_pct: number;
           esic_employer_pct: number;
           esic_ceiling: number;
@@ -95,7 +97,9 @@ export interface Database {
           da?: number;
           hra_pct?: number;
           pf_employee_pct?: number;
-          pf_employer_pct?: number;
+          pf_employer_epf_pct?: number;
+          pf_employer_edli_pct?: number;
+          pf_employer_admin_pct?: number;
           esic_employee_pct?: number;
           esic_employer_pct?: number;
           esic_ceiling?: number;

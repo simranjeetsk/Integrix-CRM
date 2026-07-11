@@ -58,6 +58,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: 0,
   },
+  cellNarrow: {
+    padding: 5,
+    borderRight: "1 solid #cbd5e1",
+    flexGrow: 0.5,
+    flexBasis: 0,
+  },
   cellLabel: {
     padding: 5,
     borderRight: "1 solid #cbd5e1",
@@ -95,12 +101,22 @@ const styles = StyleSheet.create({
   },
 });
 
-function formatCurrency(value: number): string {
-  return `Rs. ${value.toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
+function formatAmount(value: number): string {
+  return value.toLocaleString("en-IN", {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
-  })}`;
+  });
 }
+
+const GENERAL_TERMS = [
+  "These rates are as per the current minimum wages, PF/ESIC and taxation structure. Any change in the statutory structures by the government will imply changes in the cost structure. Confirmation will be sought as and when required.",
+  "Goods and Service Tax (GST) is applicable on the total cost of services, as shown above.",
+  "These charges are for manpower services for 8 working hours a day and 6 days a week.",
+  "Extra working hours shall be billed as overtime as per statutes.",
+  "Machine, Tools, Equipment, Consumables, etc. as required for the service rendering shall be provided by the service recipient.",
+  "National Holidays (26th January, 1st May, 15th August & 2nd October) will be billed extra as per statutes.",
+  "The Invoice shall be paid on or before the 7th day of receipt of invoice.",
+];
 
 export interface QuotationPdfProps {
   clientName: string;
@@ -115,9 +131,6 @@ export interface QuotationPdfProps {
 export function QuotationDocument({
   clientName,
   clientAddress,
-  requirementSummary,
-  zone,
-  skillCategory,
   generatedAt,
   result,
 }: QuotationPdfProps) {
@@ -128,64 +141,87 @@ export function QuotationDocument({
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.letterhead}>
-          <Text style={styles.companyName}>Integrix Facility Services LLP</Text>
+          <Text style={styles.companyName}>INTEGRIX FACILITY SERVICES LLP</Text>
           <Text style={styles.tagline}>
-            Manpower & Facility Management Services
+            Office No. C-610, 6th Floor, Kushal Wallstreet, Bhamburda, Shivaji
+            Nagar, Pune - 411004
+          </Text>
+          <Text style={styles.tagline}>
+            Contact: 97676 73605 | Email: info@integrixfs.com
           </Text>
         </View>
 
-        <Text style={styles.title}>Quotation</Text>
+        <Text style={styles.title}>QUOTATION — TOTAL COST TO COMPANY</Text>
         <Text style={styles.meta}>
-          Client: {clientName}
-          {clientAddress ? ` | ${clientAddress}` : ""}
+          Date: {new Date(generatedAt).toLocaleDateString("en-IN")}
           {"\n"}
-          Zone: {zone} | Skill category: {skillCategory}
-          {"\n"}
-          Generated: {new Date(generatedAt).toLocaleString("en-IN")}
-          {requirementSummary ? `\nRequirement: ${requirementSummary}` : ""}
+          To,{"\n"}
+          {clientName}
+          {clientAddress ? `\n${clientAddress}` : ""}
         </Text>
 
-        <Text style={styles.sectionTitle}>Summary</Text>
         <View style={styles.table}>
           <View style={styles.headerRow}>
-            <Text style={styles.cellLabel}>Role</Text>
-            <Text style={styles.headerCell}>Nos</Text>
-            <Text style={styles.headerCell}>Cost / employee</Text>
-            <Text style={styles.headerCell}>Line total</Text>
+            <Text style={styles.cellNarrow}>Sr.No</Text>
+            <Text style={styles.cellLabel}>Particulars</Text>
+            <Text style={styles.cellNarrow}>Nos.</Text>
+            <Text style={styles.headerCell}>Cost per No. (₹)</Text>
+            <Text style={styles.headerCell}>Total (₹)</Text>
+            <Text style={styles.cellLabel}>Remarks</Text>
           </View>
-          {result.lines.map((line) => (
+          {result.lines.map((line, index) => (
             <View style={styles.row} key={line.role}>
+              <Text style={styles.cellNarrow}>{index + 1}</Text>
               <Text style={styles.cellLabel}>{line.role}</Text>
-              <Text style={styles.cell}>{line.nos}</Text>
-              <Text style={styles.cell}>{formatCurrency(line.costPerNo)}</Text>
-              <Text style={styles.cell}>{formatCurrency(line.lineTotal)}</Text>
+              <Text style={styles.cellNarrow}>{line.nos}</Text>
+              <Text style={styles.cell}>{formatAmount(line.costPerNo)}</Text>
+              <Text style={styles.cell}>{formatAmount(line.lineTotal)}</Text>
+              <Text style={styles.cellLabel}>Refer breakup below</Text>
             </View>
           ))}
           <View style={styles.totalsRow}>
-            <Text style={styles.cellLabel}>Total manpower cost</Text>
-            <Text style={styles.cell} />
-            <Text style={styles.cell} />
-            <Text style={styles.cell}>
-              {formatCurrency(result.totalManpowerCost)}
-            </Text>
-          </View>
-          <View style={styles.totalsRow}>
-            <Text style={styles.cellLabel}>GST ({result.gstPct}%)</Text>
-            <Text style={styles.cell} />
-            <Text style={styles.cell} />
-            <Text style={styles.cell}>{formatCurrency(result.gstAmount)}</Text>
-          </View>
-          <View style={styles.totalsRow}>
-            <Text style={styles.cellLabel}>Total cost to company</Text>
-            <Text style={styles.cell} />
+            <Text style={styles.cellNarrow} />
+            <Text style={styles.cellLabel}>A   TOTAL MANPOWER COST</Text>
+            <Text style={styles.cellNarrow} />
             <Text style={styles.cell} />
             <Text style={styles.cell}>
-              {formatCurrency(result.totalCostToCompany)}
+              {formatAmount(result.totalManpowerCost)}
             </Text>
+            <Text style={styles.cellLabel} />
+          </View>
+          <View style={styles.totalsRow}>
+            <Text style={styles.cellNarrow} />
+            <Text style={styles.cellLabel}>B   SERVICE CHARGES</Text>
+            <Text style={styles.cellNarrow} />
+            <Text style={styles.cell} />
+            <Text style={styles.cell}>Included in CTC</Text>
+            <Text style={styles.cellLabel} />
+          </View>
+          <View style={styles.totalsRow}>
+            <Text style={styles.cellNarrow} />
+            <Text style={styles.cellLabel}>C   G.S.T. ({result.gstPct}%)</Text>
+            <Text style={styles.cellNarrow} />
+            <Text style={styles.cell} />
+            <Text style={styles.cell}>{formatAmount(result.gstAmount)}</Text>
+            <Text style={styles.cellLabel} />
+          </View>
+          <View style={styles.totalsRow}>
+            <Text style={styles.cellNarrow} />
+            <Text style={styles.cellLabel}>
+              TOTAL COST TO THE COMPANY (A+B+C)
+            </Text>
+            <Text style={styles.cellNarrow} />
+            <Text style={styles.cell} />
+            <Text style={styles.cell}>
+              {formatAmount(result.totalCostToCompany)}
+            </Text>
+            <Text style={styles.cellLabel} />
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Annexure: Cost Breakup per Employee</Text>
+        <Text style={styles.sectionTitle}>
+          ANNEXURE — 1 : DETAILED QUOTATION BREAKUP
+        </Text>
         {result.lines.map((line) => (
           <View key={line.role} style={{ marginBottom: 10 }}>
             <Text style={{ fontSize: 9, fontWeight: 700, marginBottom: 4 }}>
@@ -194,123 +230,167 @@ export function QuotationDocument({
             <View style={styles.table}>
               <View style={styles.row}>
                 <Text style={styles.cellLabel}>Basic</Text>
-                <Text style={styles.cell}>{formatCurrency(line.basic)}</Text>
+                <Text style={styles.cell}>{formatAmount(line.basic)}</Text>
               </View>
               <View style={styles.row}>
-                <Text style={styles.cellLabel}>DA</Text>
-                <Text style={styles.cell}>{formatCurrency(line.da)}</Text>
+                <Text style={styles.cellLabel}>D.A</Text>
+                <Text style={styles.cell}>{formatAmount(line.da)}</Text>
               </View>
               <View style={styles.row}>
-                <Text style={styles.cellLabel}>HRA</Text>
-                <Text style={styles.cell}>{formatCurrency(line.hra)}</Text>
-              </View>
-              <View style={styles.row}>
-                <Text style={styles.cellLabel}>Gross salary</Text>
+                <Text style={styles.cellLabel}>Wages (Basic + D.A)</Text>
                 <Text style={styles.cell}>
-                  {formatCurrency(line.grossSalary)}
-                </Text>
-              </View>
-              <View style={styles.row}>
-                <Text style={styles.cellLabel}>PF (employer)</Text>
-                <Text style={styles.cell}>
-                  {formatCurrency(line.pfEmployerAmount)}
+                  {formatAmount(line.basicPlusDa)}
                 </Text>
               </View>
               <View style={styles.row}>
                 <Text style={styles.cellLabel}>
-                  ESIC (employer){line.esicApplicable ? "" : " - not applicable"}
+                  H.R.A ({line.hraPct}%) on Basic+D.A
                 </Text>
+                <Text style={styles.cell}>{formatAmount(line.hra)}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel}>Other Allowances</Text>
                 <Text style={styles.cell}>
-                  {formatCurrency(line.esicEmployerAmount)}
+                  {formatAmount(line.otherAllowances)}
                 </Text>
               </View>
               <View style={styles.row}>
-                <Text style={styles.cellLabel}>Bonus (8.33% of Basic+DA)</Text>
+                <Text style={styles.cellLabel}>Gross Salary</Text>
                 <Text style={styles.cell}>
-                  {formatCurrency(line.bonusAmount)}
-                </Text>
-              </View>
-              <View style={styles.row}>
-                <Text style={styles.cellLabel}>MLWF (employer)</Text>
-                <Text style={styles.cell}>
-                  {formatCurrency(line.mlwfEmployerAmount)}
-                </Text>
-              </View>
-              <View style={styles.row}>
-                <Text style={styles.cellLabel}>Total CTC per employee</Text>
-                <Text style={styles.cell}>
-                  {formatCurrency(line.totalCtcPerEmployee)}
+                  {formatAmount(line.grossSalary)}
                 </Text>
               </View>
               <View style={styles.row}>
                 <Text style={styles.cellLabel}>
-                  Service charge ({line.serviceChargePct}%)
+                  Provident Fund Contribution @ {line.pfEmployerPct}% of
+                  (Basic+DA)
                 </Text>
                 <Text style={styles.cell}>
-                  {formatCurrency(line.serviceChargeAmount)}
+                  {formatAmount(line.pfEmployerAmount)}
+                </Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel}>
+                  ESIC Contribution @ {line.esicEmployerPct}% of (Basic+DA)
+                  {line.esicApplicable ? "" : " - not applicable"}
+                </Text>
+                <Text style={styles.cell}>
+                  {formatAmount(line.esicEmployerAmount)}
+                </Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel}>
+                  Bonus @ {line.bonusPct}% of (Wages)
+                </Text>
+                <Text style={styles.cell}>
+                  {formatAmount(line.bonusAmount)}
+                </Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel}>
+                  MLWF (Employer share, monthly equiv.)
+                </Text>
+                <Text style={styles.cell}>
+                  {formatAmount(line.mlwfEmployerAmount)}
+                </Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel}>Cost to Company</Text>
+                <Text style={styles.cell}>
+                  {formatAmount(line.totalCtcPerEmployee)}
+                </Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel}>
+                  Service Charges @ {line.serviceChargePct}%
+                </Text>
+                <Text style={styles.cell}>
+                  {formatAmount(line.serviceChargeAmount)}
                 </Text>
               </View>
               <View style={styles.totalsRow}>
+                <Text style={styles.cellLabel}>Total Manpower Cost</Text>
+                <Text style={styles.cell}>{formatAmount(line.costPerNo)}</Text>
+              </View>
+            </View>
+          </View>
+        ))}
+
+        <Text style={styles.sectionTitle}>TAKE HOME CALCULATION</Text>
+        {result.lines.map((line) => (
+          <View key={line.role} style={{ marginBottom: 10 }}>
+            <View style={styles.table}>
+              <View style={styles.headerRow}>
+                <Text style={styles.cellLabel}>Head</Text>
+                <Text style={styles.cellLabel}>Particulars</Text>
+                <Text style={styles.headerCell}>Amount in ₹</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel}>Earnings</Text>
+                <Text style={styles.cellLabel}>Gross Salary (Wages)</Text>
+                <Text style={styles.cell}>
+                  {formatAmount(line.basicPlusDa)}
+                </Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel} />
                 <Text style={styles.cellLabel}>
-                  Total manpower cost per employee
+                  Allowances (HRA + Other)
                 </Text>
                 <Text style={styles.cell}>
-                  {formatCurrency(line.costPerNo)}
+                  {formatAmount(line.hra + line.otherAllowances)}
+                </Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel} />
+                <Text style={styles.cellLabel}>Total Gross Salary</Text>
+                <Text style={styles.cell}>
+                  {formatAmount(line.grossSalary)}
+                </Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel}>Deductions</Text>
+                <Text style={styles.cellLabel}>
+                  Provident Fund @ {line.pfEmployeePct}% of (Basic+DA)
+                </Text>
+                <Text style={styles.cell}>
+                  {formatAmount(line.pfEmployeeAmount)}
+                </Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel} />
+                <Text style={styles.cellLabel}>
+                  ESIC @ {line.esicEmployeePct}% of Basic+DA
+                </Text>
+                <Text style={styles.cell}>
+                  {formatAmount(line.esicEmployeeAmount)}
+                </Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel} />
+                <Text style={styles.cellLabel}>Professional Tax</Text>
+                <Text style={styles.cell}>
+                  {formatAmount(line.professionalTax)}
+                </Text>
+              </View>
+              <View style={styles.totalsRow}>
+                <Text style={styles.cellLabel}>Take Home Salary</Text>
+                <Text style={styles.cellLabel} />
+                <Text style={styles.cell}>
+                  {formatAmount(line.netTakeHome)}
                 </Text>
               </View>
             </View>
           </View>
         ))}
 
-        <Text style={styles.sectionTitle}>Take-Home Calculation</Text>
-        <View style={styles.table}>
-          <View style={styles.headerRow}>
-            <Text style={styles.cellLabel}>Role</Text>
-            <Text style={styles.headerCell}>Gross</Text>
-            <Text style={styles.headerCell}>PF (employee)</Text>
-            <Text style={styles.headerCell}>ESIC (employee)</Text>
-            <Text style={styles.headerCell}>P. Tax</Text>
-            <Text style={styles.headerCell}>Net take-home</Text>
-          </View>
-          {result.lines.map((line) => (
-            <View style={styles.row} key={line.role}>
-              <Text style={styles.cellLabel}>{line.role}</Text>
-              <Text style={styles.cell}>{formatCurrency(line.grossSalary)}</Text>
-              <Text style={styles.cell}>
-                {formatCurrency(line.pfEmployeeAmount)}
-              </Text>
-              <Text style={styles.cell}>
-                {formatCurrency(line.esicEmployeeAmount)}
-              </Text>
-              <Text style={styles.cell}>
-                {formatCurrency(line.professionalTax)}
-              </Text>
-              <Text style={styles.cell}>
-                {formatCurrency(line.netTakeHome)}
-              </Text>
-            </View>
-          ))}
-        </View>
-
         <View style={styles.terms}>
-          <Text style={styles.sectionTitle}>Terms</Text>
-          <Text style={styles.termItem}>
-            1. This quotation is based on the Maharashtra minimum wage
-            notification figures loaded in the system at the time of
-            generation and is subject to revision on any statutory wage
-            change.
-          </Text>
-          <Text style={styles.termItem}>
-            2. GST is charged extra as applicable at {result.gstPct}%.
-          </Text>
-          <Text style={styles.termItem}>
-            3. Billing is on a calendar month basis, payable within 30 days of
-            invoice.
-          </Text>
-          <Text style={styles.termItem}>
-            4. This quotation is valid for 30 days from the date of
-            generation.
-          </Text>
+          <Text style={styles.sectionTitle}>General Terms and Conditions</Text>
+          {GENERAL_TERMS.map((term, index) => (
+            <Text key={term} style={styles.termItem}>
+              {index + 1}. {term}
+            </Text>
+          ))}
         </View>
 
         <Text style={styles.footer}>

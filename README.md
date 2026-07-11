@@ -97,14 +97,24 @@ the client lifecycle (Phase 2), that's the point to revisit this decision.
 ## Rate card data
 
 `supabase/seed.sql` ships the Basic + DA figures and statutory rates
-effective 1 Jan 2026 (HRA 5%, PF 12%/13%, ESIC 0.75%/3.25% with a Rs 21,000
-ceiling tested against Basic+DA, Bonus 8.33%, MLWF Rs 12.50 flat, PT Rs 200
-flat, Service Charge 10%), all editable per rate card. GST defaults to 18%
-at the quotation level. The quotation engine
-(`src/lib/quotation/engine.ts`) applies ESIC directly off Basic+DA against
-the ceiling (not gross). Spec Section 8, item 2, still calls for a CA/
-labour law consultant to sign off on the ESIC applicability interpretation
-before it drives a live client quotation.
+effective 1 Jan 2026 (HRA 5%, PF employee 12%, PF employer as three
+separate sub-rates — EPF 12% + EDLI 0.5% + Admin 0.5% — ESIC 0.75%/3.25%
+with a Rs 21,000 ceiling tested against Basic+DA, Bonus 8.33%, MLWF Rs
+12.50 flat, PT Rs 200 flat, Service Charge 10%), all editable per rate
+card. GST defaults to 18% at the quotation level. The quotation engine
+(`src/lib/quotation/engine.ts`) has been verified line-for-line against
+the `Integrix_Driver_CTC_Calculator.xlsx` workbook's "Client Quotation"
+tab for Zone I Skilled / ₹20,000 target take-home — both the numbers and
+the rounding convention (every statutory line item rounds to the nearest
+whole rupee *before* being summed into the next total, matching the
+workbook; only MLWF stays unrounded) match exactly, and the PDF's labels
+and letterhead are transcribed from the same tab. The PF-employer figure
+is deliberately computed as three independently-rounded sub-components
+(not one combined 13%), because that's the only way to reproduce the
+workbook's rounding exactly. Spec Section 8, item 2, still calls for a
+CA/labour law consultant to sign off on the ESIC applicability
+interpretation before it drives a live client quotation — the workbook's
+own Notes tab flags this as a recently-notified compliance area.
 
 ## Scripts
 
@@ -137,7 +147,7 @@ src/
   proxy.ts                  # Next.js 16 Proxy (formerly Middleware)
 supabase/
   migrations/               # schema + RLS + storage bucket
-  seed.sql                  # placeholder rate cards + sample client
+  seed.sql                  # rate cards (Excel-verified) + sample client
 ```
 
 ## Next steps (not in this slice)

@@ -35,7 +35,9 @@ export function toEngineRateCard(row: {
   da: number;
   hra_pct: number;
   pf_employee_pct: number;
-  pf_employer_pct: number;
+  pf_employer_epf_pct: number;
+  pf_employer_edli_pct: number;
+  pf_employer_admin_pct: number;
   esic_employee_pct: number;
   esic_employer_pct: number;
   esic_ceiling: number;
@@ -52,7 +54,9 @@ export function toEngineRateCard(row: {
     da: row.da,
     hraPct: row.hra_pct,
     pfEmployeePct: row.pf_employee_pct,
-    pfEmployerPct: row.pf_employer_pct,
+    pfEmployerEpfPct: row.pf_employer_epf_pct,
+    pfEmployerEdliPct: row.pf_employer_edli_pct,
+    pfEmployerAdminPct: row.pf_employer_admin_pct,
     esicEmployeePct: row.esic_employee_pct,
     esicEmployerPct: row.esic_employer_pct,
     esicCeiling: row.esic_ceiling,

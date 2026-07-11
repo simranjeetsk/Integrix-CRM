@@ -1,12 +1,20 @@
 /**
  * Quotation engine — ported from the Integrix Driver CTC Calculator workbook
- * (Technical Spec, Section 4). Given a rate card and a target monthly
- * take-home per employee, computes gross salary and the full employer-side
- * cost stack, then rolls it up to a headcount-priced quotation line.
+ * (Technical Spec, Section 4), verified line-for-line against the workbook's
+ * "Client Quotation" tab for Zone I Skilled / ₹20,000 target take-home.
  *
- * ESIC applicability is a direct test on Basic+DA against `esicCeiling`
- * (not on gross), so ESIC employee/employer amounts are known before gross
- * is computed — gross is a straight sum, not an iterative solve.
+ * ESIC applicability is a direct test on Basic+DA against `esicCeiling` (not
+ * on gross), so ESIC employee/employer amounts are known before gross is
+ * computed — gross is a straight sum, not an iterative solve.
+ *
+ * Rounding matches the workbook exactly: every statutory line item (HRA, PF,
+ * ESIC, Bonus, Service Charge) is rounded to the nearest whole rupee
+ * *before* being summed into the next total — not rounded once at the end.
+ * MLWF is the one exception: it's a flat rate-card value (e.g. ₹12.50) and
+ * is never rounded. PF-employer is three separately-rounded statutory
+ * sub-components (EPF 12% + EDLI 0.5% + Admin 0.5%), matching the workbook's
+ * "Provident Fund Contribution" line — rounding the combined 13% directly
+ * gives a different (wrong) answer than the workbook's.
  */
 
 export interface RateCard {
@@ -17,7 +25,9 @@ export interface RateCard {
   da: number;
   hraPct: number;
   pfEmployeePct: number;
-  pfEmployerPct: number;
+  pfEmployerEpfPct: number;
+  pfEmployerEdliPct: number;
+  pfEmployerAdminPct: number;
   esicEmployeePct: number;
   esicEmployerPct: number;
   esicCeiling: number;
@@ -44,16 +54,26 @@ export interface QuotationLineResult {
   nos: number;
   basic: number;
   da: number;
+  hraPct: number;
   hra: number;
+  otherAllowances: number;
   basicPlusDa: number;
   esicApplicable: boolean;
   grossSalary: number;
+  pfEmployeePct: number;
   pfEmployeeAmount: number;
+  esicEmployeePct: number;
   esicEmployeeAmount: number;
   professionalTax: number;
   netTakeHome: number;
+  pfEmployerEpfAmount: number;
+  pfEmployerEdliAmount: number;
+  pfEmployerAdminAmount: number;
   pfEmployerAmount: number;
+  pfEmployerPct: number;
+  esicEmployerPct: number;
   esicEmployerAmount: number;
+  bonusPct: number;
   bonusAmount: number;
   mlwfEmployerAmount: number;
   totalCtcPerEmployee: number;
@@ -71,12 +91,20 @@ export interface QuotationResult {
   totalCostToCompany: number;
 }
 
+// Rounds a statutory line item to the nearest whole rupee, matching the
+// workbook's convention of rounding each line before summing into a total.
+function roundRupee(value: number): number {
+  return Math.round(value);
+}
+
+// Cleans up floating-point noise on totals that are sums of already-rounded
+// (mostly whole-rupee) parts; does not itself round to whole rupees.
 function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 /**
- * Steps 1-6 of Section 4: solve gross salary and per-employee cost for a
+ * Steps 1-6 of Section 4: compute gross salary and per-employee cost for a
  * single role, given the target monthly take-home.
  */
 export function calculateQuotationLine(
@@ -95,33 +123,43 @@ export function calculateQuotationLine(
   const da = rateCard.da;
   const basicPlusDa = basic + da;
 
-  // Step 2: HRA and employee-side PF. PF is computed on Basic+DA, not gross.
-  const hra = round2(basicPlusDa * (rateCard.hraPct / 100));
-  const pfEmployeeAmount = round2(basicPlusDa * (rateCard.pfEmployeePct / 100));
+  // Step 2: HRA and employee-side PF, each rounded to the nearest rupee.
+  const hra = roundRupee(basicPlusDa * (rateCard.hraPct / 100));
+  const pfEmployeeAmount = roundRupee(basicPlusDa * (rateCard.pfEmployeePct / 100));
   const professionalTax = rateCard.professionalTax;
 
   // Step 3: ESIC applicability is a direct test on Basic+DA against the
   // wage ceiling — it does not depend on gross, so there is no circularity.
   const esicApplicable = basicPlusDa <= rateCard.esicCeiling;
   const esicEmployeeAmount = esicApplicable
-    ? round2(basicPlusDa * (rateCard.esicEmployeePct / 100))
+    ? roundRupee(basicPlusDa * (rateCard.esicEmployeePct / 100))
     : 0;
 
-  // Step 4: Gross is now a direct sum, since every deduction is already known.
-  const grossSalary = round2(
-    input.targetTakeHome + pfEmployeeAmount + esicEmployeeAmount + professionalTax
-  );
+  // Step 4: Gross is a direct sum of already-rounded whole-rupee parts.
+  const grossSalary =
+    input.targetTakeHome + pfEmployeeAmount + esicEmployeeAmount + professionalTax;
 
-  const netTakeHome = round2(
-    grossSalary - pfEmployeeAmount - esicEmployeeAmount - professionalTax
-  );
+  const netTakeHome = grossSalary - pfEmployeeAmount - esicEmployeeAmount - professionalTax;
 
-  // Step 5: employer-side costs.
-  const pfEmployerAmount = round2(basicPlusDa * (rateCard.pfEmployerPct / 100));
+  // Other Allowances is the balancing figure between Gross and the named
+  // components (Basic + DA + HRA), shown as its own annexure line.
+  const otherAllowances = grossSalary - basic - da - hra;
+
+  // Step 5: employer-side costs. PF-employer is three separately-rounded
+  // statutory sub-components (EPF, EDLI, Admin) summed for display as one
+  // combined line — rounding the combined percentage directly would give a
+  // different total than the workbook's.
+  const pfEmployerEpfAmount = roundRupee(basicPlusDa * (rateCard.pfEmployerEpfPct / 100));
+  const pfEmployerEdliAmount = roundRupee(basicPlusDa * (rateCard.pfEmployerEdliPct / 100));
+  const pfEmployerAdminAmount = roundRupee(basicPlusDa * (rateCard.pfEmployerAdminPct / 100));
+  const pfEmployerAmount = pfEmployerEpfAmount + pfEmployerEdliAmount + pfEmployerAdminAmount;
+  const pfEmployerPct =
+    rateCard.pfEmployerEpfPct + rateCard.pfEmployerEdliPct + rateCard.pfEmployerAdminPct;
+
   const esicEmployerAmount = esicApplicable
-    ? round2(basicPlusDa * (rateCard.esicEmployerPct / 100))
+    ? roundRupee(basicPlusDa * (rateCard.esicEmployerPct / 100))
     : 0;
-  const bonusAmount = round2(basicPlusDa * (rateCard.bonusPct / 100));
+  const bonusAmount = roundRupee(basicPlusDa * (rateCard.bonusPct / 100));
   const mlwfEmployerAmount = rateCard.mlwfEmployer;
 
   // Step 6: Total CTC -> service charge -> Total Manpower Cost per employee.
@@ -134,7 +172,7 @@ export function calculateQuotationLine(
   );
   const serviceChargePct =
     input.serviceChargePctOverride ?? rateCard.serviceChargePct;
-  const serviceChargeAmount = round2(
+  const serviceChargeAmount = roundRupee(
     totalCtcPerEmployee * (serviceChargePct / 100)
   );
   const costPerNo = round2(totalCtcPerEmployee + serviceChargeAmount);
@@ -147,16 +185,26 @@ export function calculateQuotationLine(
     nos: input.nos,
     basic,
     da,
+    hraPct: rateCard.hraPct,
     hra,
+    otherAllowances,
     basicPlusDa,
     esicApplicable,
     grossSalary,
+    pfEmployeePct: rateCard.pfEmployeePct,
     pfEmployeeAmount,
+    esicEmployeePct: rateCard.esicEmployeePct,
     esicEmployeeAmount,
     professionalTax,
     netTakeHome,
+    pfEmployerEpfAmount,
+    pfEmployerEdliAmount,
+    pfEmployerAdminAmount,
     pfEmployerAmount,
+    pfEmployerPct,
+    esicEmployerPct: rateCard.esicEmployerPct,
     esicEmployerAmount,
+    bonusPct: rateCard.bonusPct,
     bonusAmount,
     mlwfEmployerAmount,
     totalCtcPerEmployee,
