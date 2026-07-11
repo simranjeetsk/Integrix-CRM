@@ -38,6 +38,11 @@ LibreOffice binary, cold-start cost of spinning one up). This slice uses
 external binary. If you need the exact DOCX templates from other stages of
 the client lifecycle (Phase 2), that's the point to revisit this decision.
 
+The letterhead uses the real Integrix logo (`public/integrix-logo.png`,
+extracted from the "Horizontal Logo" lockup in the brand asset EPS at high
+resolution) and the actual office address/phone/email, transcribed from
+the workbook's "Client Quotation" tab.
+
 ## Prerequisites
 
 - Node.js 20.9+

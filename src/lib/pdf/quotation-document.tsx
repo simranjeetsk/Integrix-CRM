@@ -1,5 +1,18 @@
-import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import {
+  Document,
+  Image,
+  Page,
+  StyleSheet,
+  Text,
+  View,
+} from "@react-pdf/renderer";
 import type { QuotationResult } from "@/lib/quotation/engine";
+
+const logoBuffer = readFileSync(
+  path.join(process.cwd(), "public", "integrix-logo.png")
+);
 
 const styles = StyleSheet.create({
   page: {
@@ -9,13 +22,16 @@ const styles = StyleSheet.create({
     color: "#1e293b",
   },
   letterhead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
     borderBottom: "2 solid #0f172a",
     paddingBottom: 10,
     marginBottom: 16,
   },
-  companyName: {
-    fontSize: 16,
-    fontWeight: 700,
+  logo: {
+    width: 160,
+    height: 44,
   },
   tagline: {
     fontSize: 8,
@@ -141,14 +157,17 @@ export function QuotationDocument({
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.letterhead}>
-          <Text style={styles.companyName}>INTEGRIX FACILITY SERVICES LLP</Text>
-          <Text style={styles.tagline}>
-            Office No. C-610, 6th Floor, Kushal Wallstreet, Bhamburda, Shivaji
-            Nagar, Pune - 411004
-          </Text>
-          <Text style={styles.tagline}>
-            Contact: 97676 73605 | Email: info@integrixfs.com
-          </Text>
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer's Image has no alt prop; this isn't an HTML <img> */}
+          <Image src={logoBuffer} style={styles.logo} />
+          <View>
+            <Text style={styles.tagline}>
+              Office No. C-610, 6th Floor, Kushal Wallstreet, Bhamburda,
+              Shivaji Nagar, Pune - 411004
+            </Text>
+            <Text style={styles.tagline}>
+              Contact: 97676 73605 | Email: info@integrixfs.com
+            </Text>
+          </View>
         </View>
 
         <Text style={styles.title}>QUOTATION — TOTAL COST TO COMPANY</Text>
@@ -165,8 +184,8 @@ export function QuotationDocument({
             <Text style={styles.cellNarrow}>Sr.No</Text>
             <Text style={styles.cellLabel}>Particulars</Text>
             <Text style={styles.cellNarrow}>Nos.</Text>
-            <Text style={styles.headerCell}>Cost per No. (₹)</Text>
-            <Text style={styles.headerCell}>Total (₹)</Text>
+            <Text style={styles.headerCell}>Cost per No. (Rs.)</Text>
+            <Text style={styles.headerCell}>Total (Rs.)</Text>
             <Text style={styles.cellLabel}>Remarks</Text>
           </View>
           {result.lines.map((line, index) => (
@@ -323,7 +342,7 @@ export function QuotationDocument({
               <View style={styles.headerRow}>
                 <Text style={styles.cellLabel}>Head</Text>
                 <Text style={styles.cellLabel}>Particulars</Text>
-                <Text style={styles.headerCell}>Amount in ₹</Text>
+                <Text style={styles.headerCell}>Amount in Rs.</Text>
               </View>
               <View style={styles.row}>
                 <Text style={styles.cellLabel}>Earnings</Text>
