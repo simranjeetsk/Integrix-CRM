@@ -23,33 +23,57 @@ const zoneISkilled: RateCard = {
   serviceChargePct: 10,
 };
 
+// Basic+DA above the ESIC ceiling, to exercise the not-applicable branch.
+const zoneISupervisor: RateCard = {
+  ...zoneISkilled,
+  skillCategory: "Supervisor",
+  basic: 22000,
+};
+
 describe("calculateQuotationLine", () => {
-  it("solves gross so the net take-home matches the target, when ESIC applies", () => {
+  it("applies ESIC when Basic+DA is at or below the ceiling", () => {
     const result = calculateQuotationLine(
       { role: "Security Guard", nos: 1, targetTakeHome: 15000 },
       zoneISkilled
     );
 
     expect(result.esicApplicable).toBe(true);
-    expect(result.grossSalary).toBeLessThanOrEqual(zoneISkilled.esicCeiling);
-    expect(result.netTakeHome).toBeCloseTo(15000, 1);
     expect(result.esicEmployeeAmount).toBeCloseTo(
-      result.grossSalary * (zoneISkilled.esicEmployeePct / 100),
+      result.basicPlusDa * (zoneISkilled.esicEmployeePct / 100),
       2
     );
+    expect(result.esicEmployerAmount).toBeCloseTo(
+      result.basicPlusDa * (zoneISkilled.esicEmployerPct / 100),
+      2
+    );
+    expect(result.netTakeHome).toBeCloseTo(15000, 1);
   });
 
-  it("falls back to the no-ESIC scenario when the solved gross exceeds the ceiling", () => {
+  it("does not apply ESIC when Basic+DA exceeds the ceiling", () => {
     const result = calculateQuotationLine(
       { role: "Supervisor", nos: 1, targetTakeHome: 20000 },
-      zoneISkilled
+      zoneISupervisor
     );
 
     expect(result.esicApplicable).toBe(false);
-    expect(result.grossSalary).toBeGreaterThan(zoneISkilled.esicCeiling);
     expect(result.esicEmployeeAmount).toBe(0);
     expect(result.esicEmployerAmount).toBe(0);
     expect(result.netTakeHome).toBeCloseTo(20000, 1);
+  });
+
+  it("computes gross as a direct sum, not an iterative solve", () => {
+    const result = calculateQuotationLine(
+      { role: "Security Guard", nos: 1, targetTakeHome: 15000 },
+      zoneISkilled
+    );
+
+    expect(result.grossSalary).toBeCloseTo(
+      15000 +
+        result.pfEmployeeAmount +
+        result.esicEmployeeAmount +
+        result.professionalTax,
+      2
+    );
   });
 
   it("computes PF and bonus off Basic+DA, not gross", () => {

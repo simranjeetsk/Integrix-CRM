@@ -101,11 +101,10 @@ Maharashtra minimum wage notification values. Spec Section 8 (Open
 Decisions), item 1, calls out that Zone II/III Skilled basic wage figures
 need confirmation against the official notification, and item 2 calls out
 that the ESIC applicability logic needs sign-off from a CA/labour law
-consultant. The quotation engine's ESIC scenario test
-(`src/lib/quotation/engine.ts`) is a best-effort transcription of Section
-4's description — the original `Integrix_Driver_CTC_Calculator.xlsx`
-workbook wasn't available to transcribe directly, so **do not use this for
-a real client quotation until both are confirmed.**
+consultant. The quotation engine (`src/lib/quotation/engine.ts`) applies
+ESIC directly off Basic+DA against the wage ceiling (not gross) per current
+guidance, but that guidance itself still needs confirmation, so **do not use
+this for a real client quotation until both are confirmed.**
 
 ## Scripts
 

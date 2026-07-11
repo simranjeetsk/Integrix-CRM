@@ -1,16 +1,12 @@
 /**
  * Quotation engine — ported from the Integrix Driver CTC Calculator workbook
  * (Technical Spec, Section 4). Given a rate card and a target monthly
- * take-home per employee, solves for gross salary and the full employer-side
+ * take-home per employee, computes gross salary and the full employer-side
  * cost stack, then rolls it up to a headcount-priced quotation line.
  *
- * Assumption flagged for review (Spec Section 8, item 2): ESIC applicability
- * is decided by testing whether the solved gross salary falls at or below
- * `esicCeiling`. The spec's fuller "Code on Social Security" wage test (which
- * also considers whether excluded allowances exceed 50% of total
- * remuneration) is not reproduced here because the source workbook was not
- * available to transcribe — this must be validated with a CA/labour law
- * consultant before it drives live quotations.
+ * ESIC applicability is a direct test on Basic+DA against `esicCeiling`
+ * (not on gross), so ESIC employee/employer amounts are known before gross
+ * is computed — gross is a straight sum, not an iterative solve.
  */
 
 export interface RateCard {
@@ -104,38 +100,17 @@ export function calculateQuotationLine(
   const pfEmployeeAmount = round2(basicPlusDa * (rateCard.pfEmployeePct / 100));
   const professionalTax = rateCard.professionalTax;
 
-  // Step 3-4: two-scenario ESIC test, then solve Gross so that
-  // Net Take-Home = Gross - PF employee - ESIC employee - PT.
-  //
-  // Scenario A (ESIC applies): ESIC employee contribution is a percentage of
-  // Gross, so Gross appears on both sides of the take-home equation:
-  //   target = Gross - pfEmployee - Gross * esicRate - PT
-  //   Gross * (1 - esicRate) = target + pfEmployee + PT
-  const esicEmployeeRate = rateCard.esicEmployeePct / 100;
-  const grossIfEsicApplies =
-    (input.targetTakeHome + pfEmployeeAmount + professionalTax) /
-    (1 - esicEmployeeRate);
+  // Step 3: ESIC applicability is a direct test on Basic+DA against the
+  // wage ceiling — it does not depend on gross, so there is no circularity.
+  const esicApplicable = basicPlusDa <= rateCard.esicCeiling;
+  const esicEmployeeAmount = esicApplicable
+    ? round2(basicPlusDa * (rateCard.esicEmployeePct / 100))
+    : 0;
 
-  // Scenario A is only internally consistent if the resulting gross is
-  // actually within the ESIC wage ceiling (otherwise ESIC would not apply,
-  // and Scenario B is the consistent one).
-  const scenarioAConsistent = grossIfEsicApplies <= rateCard.esicCeiling;
-
-  let esicApplicable: boolean;
-  let grossSalary: number;
-  let esicEmployeeAmount: number;
-
-  if (scenarioAConsistent) {
-    esicApplicable = true;
-    grossSalary = grossIfEsicApplies;
-    esicEmployeeAmount = round2(grossSalary * esicEmployeeRate);
-  } else {
-    // Scenario B (ESIC does not apply): no ESIC term in the equation.
-    esicApplicable = false;
-    grossSalary = input.targetTakeHome + pfEmployeeAmount + professionalTax;
-    esicEmployeeAmount = 0;
-  }
-  grossSalary = round2(grossSalary);
+  // Step 4: Gross is now a direct sum, since every deduction is already known.
+  const grossSalary = round2(
+    input.targetTakeHome + pfEmployeeAmount + esicEmployeeAmount + professionalTax
+  );
 
   const netTakeHome = round2(
     grossSalary - pfEmployeeAmount - esicEmployeeAmount - professionalTax
@@ -144,7 +119,7 @@ export function calculateQuotationLine(
   // Step 5: employer-side costs.
   const pfEmployerAmount = round2(basicPlusDa * (rateCard.pfEmployerPct / 100));
   const esicEmployerAmount = esicApplicable
-    ? round2(grossSalary * (rateCard.esicEmployerPct / 100))
+    ? round2(basicPlusDa * (rateCard.esicEmployerPct / 100))
     : 0;
   const bonusAmount = round2(basicPlusDa * (rateCard.bonusPct / 100));
   const mlwfEmployerAmount = rateCard.mlwfEmployer;
