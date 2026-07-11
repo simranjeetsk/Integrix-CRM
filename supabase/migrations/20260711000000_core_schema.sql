@@ -53,7 +53,7 @@ create table public.rate_cards (
   esic_employer_pct numeric(5, 2) not null default 3.25,
   esic_ceiling numeric(12, 2) not null default 21000,
   bonus_pct numeric(5, 2) not null default 8.33,
-  mlwf_employer numeric(12, 2) not null default 3,
+  mlwf_employer numeric(12, 2) not null default 12.50,
   professional_tax numeric(12, 2) not null default 200,
   service_charge_pct numeric(5, 2) not null default 10,
   effective_from date not null,

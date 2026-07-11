@@ -94,17 +94,17 @@ the client lifecycle (Phase 2), that's the point to revisit this decision.
    Visit `http://localhost:3000`, sign in, create a client, log an enquiry
    against it, then generate a quotation and download the PDF.
 
-## Important: rate card figures are placeholders
+## Rate card data
 
-`supabase/seed.sql` ships illustrative basic/DA figures, **not** confirmed
-Maharashtra minimum wage notification values. Spec Section 8 (Open
-Decisions), item 1, calls out that Zone II/III Skilled basic wage figures
-need confirmation against the official notification, and item 2 calls out
-that the ESIC applicability logic needs sign-off from a CA/labour law
-consultant. The quotation engine (`src/lib/quotation/engine.ts`) applies
-ESIC directly off Basic+DA against the wage ceiling (not gross) per current
-guidance, but that guidance itself still needs confirmation, so **do not use
-this for a real client quotation until both are confirmed.**
+`supabase/seed.sql` ships the Basic + DA figures and statutory rates
+effective 1 Jan 2026 (HRA 5%, PF 12%/13%, ESIC 0.75%/3.25% with a Rs 21,000
+ceiling tested against Basic+DA, Bonus 8.33%, MLWF Rs 12.50 flat, PT Rs 200
+flat, Service Charge 10%), all editable per rate card. GST defaults to 18%
+at the quotation level. The quotation engine
+(`src/lib/quotation/engine.ts`) applies ESIC directly off Basic+DA against
+the ceiling (not gross). Spec Section 8, item 2, still calls for a CA/
+labour law consultant to sign off on the ESIC applicability interpretation
+before it drives a live client quotation.
 
 ## Scripts
 
